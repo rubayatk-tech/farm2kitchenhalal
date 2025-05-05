@@ -1,10 +1,12 @@
+import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv()  # ✅ Load environment variables before config.py
 
 from flask import Flask, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import timedelta
 from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
+
 
 
 app = Flask(__name__)
