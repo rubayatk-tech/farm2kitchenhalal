@@ -1,4 +1,3 @@
-
 # 🥩 Farm2Kitchen Ordering App
 
 Farm2Kitchen is a lightweight community ordering app designed to help local meat and egg sellers manage weekly orders. It features a clean user-facing order form and a secure admin dashboard to manage submissions, confirm orders, and apply shared delivery costs.
@@ -82,21 +81,5 @@ farm2kitchen/
 │   └── admin_login.html
 └── README.md
 ```
-
----
-
-## 📌 Notes
-
-- The app uses SQLite by default for simplicity.
-- Admin credentials are hardcoded in `config.py` for now (can be improved).
-- Deployment-ready for services like [Render](https://render.com) with minor changes.
-
----
-
-## 🧼 To Do
-
-- [ ] Add QR code confirmation for each order
-- [ ] Email/text notification integration
-- [ ] Deploy to cloud (Render, Fly.io, etc.)
 
 ---
