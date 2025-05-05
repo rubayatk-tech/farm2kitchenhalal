@@ -1,0 +1,72 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Dashboard</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        form.inline { display: inline; }
+    </style>
+</head>
+<body>
+    <h1>Farm2Kitchen Order Dashboard</h1>
+
+    {% if is_admin %}
+    <form method="POST" action="/dashboard">
+        <label for="shared_cost">Shared Cost (Delivery + Tip): $</label>
+        <input type="number" step="0.01" name="shared_cost" required>
+        <button type="submit">Update</button>
+    </form>    
+    <form method="POST" action="/clear_orders" style="margin-top: 10px;">
+        <button onclick="return confirm('Are you sure want to refresh dashboard and clear all orders?');">Clear All Orders</button>
+    </form>
+    <form method="GET" action="/logout" style="margin-top: 10px;">
+        <button>Logout</button>
+    </form>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Zelle Name</th>
+                <th>Phone</th>
+                <th>Items Ordered</th>
+                <th>Total Price</th>
+                <th>Shared Cost</th>
+                <th>Total Due</th>
+                <th>Status</th>
+                {% if is_admin %}
+                <th>Action</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.user.zelle_name }}</td>
+                <td>{{ order.user.phone }}</td>
+                <td>{{ order.items_ordered }}</td>
+                <td>${{ "%.2f"|format(order.total_price_usd) }}</td>
+                <td>${{ "%.2f"|format(shared_per_order) }}</td>
+                <td>${{ "%.2f"|format(order.total_price_usd + shared_per_order) }}</td>
+                <td>{{ order.status }}</td>
+                {% if is_admin %}
+                <td>
+                    {% if order.status != 'Confirmed' %}
+                    <form method="POST" action="/confirm_order/{{ order.id }}" class="inline">
+                        <button type="submit">Mark as Confirmed</button>
+                    </form>
+                    {% else %}
+                    Confirmed
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
