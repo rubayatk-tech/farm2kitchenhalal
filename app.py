@@ -130,6 +130,52 @@ def clear_orders():
     db.session.commit()
     return redirect('/dashboard')
 
+
+@app.route('/edit_order/<int:order_id>', methods=['GET', 'POST'])
+def edit_order(order_id):
+    if not session.get('admin'):
+        return "Unauthorized", 403
+
+    order = Order.query.get_or_404(order_id)
+
+    if request.method == 'POST':
+        quantities = {}
+        total_price = 0.0
+        for key in PRICES:
+            qty = float(request.form.get(key, 0) or 0)
+            if qty > 0:
+                quantities[key] = qty
+                total_price += qty * PRICES[key]
+
+        # Rebuild items_ordered string
+        items_ordered = ', '.join([f"{LABELS[key]}: {int(quantities[key])}" for key in quantities])
+        order.items_ordered = items_ordered
+        order.total_price_usd = total_price
+        db.session.commit()
+        return redirect('/dashboard')
+
+    # Extract current order into item: quantity dict
+    quantities = {}
+    for key in PRICES:
+        label = LABELS[key]
+        if label in order.items_ordered:
+            try:
+                part = order.items_ordered.split(label + ":")[1].split(",")[0].strip()
+                quantities[key] = int(part)
+            except:
+                quantities[key] = 0
+        else:
+            quantities[key] = 0
+
+    return render_template(
+        "edit_order.html",
+        order=order,
+        prices=PRICES,
+        labels=LABELS,
+        quantities=quantities
+    )
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

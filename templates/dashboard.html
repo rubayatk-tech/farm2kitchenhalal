@@ -53,6 +53,11 @@
                 <td>${{ "%.2f"|format(shared_per_order) }}</td>
                 <td>${{ "%.2f"|format(order.total_price_usd + shared_per_order) }}</td>
                 <td>{{ order.status }}</td>
+                <td>
+                    <form action="/edit_order/{{ order.id }}" method="get" style="display:inline;">
+                      <button type="submit">Edit</button>
+                    </form>
+                </td>
                 {% if is_admin %}
                 <td>
                     {% if order.status != 'Confirmed' %}
