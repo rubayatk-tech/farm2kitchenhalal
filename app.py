@@ -235,6 +235,15 @@ def export_confirmed_pdf():
 
     return send_file(buffer, as_attachment=True, download_name="confirmed_orders.pdf", mimetype='application/pdf')
 
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    if not session.get('admin'):
+        return "Unauthorized", 403
+    order = Order.query.get_or_404(order_id)
+    db.session.delete(order)
+    db.session.commit()
+    return redirect('/dashboard')
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
