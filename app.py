@@ -1,12 +1,23 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()  # ✅ Load environment variables before config.py
-
-from flask import Flask, render_template, request, redirect, session
-from flask_sqlalchemy import SQLAlchemy
+from io import BytesIO
 from datetime import timedelta
-from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
 
+from dotenv import load_dotenv
+load_dotenv()
+
+# Flask core
+from flask import Flask, render_template, request, redirect, session, send_file
+from flask_sqlalchemy import SQLAlchemy
+
+# ReportLab for PDF generation
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
+# App configuration
+from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
 
 
 app = Flask(__name__)
@@ -175,6 +186,54 @@ def edit_order(order_id):
         quantities=quantities
     )
 
+@app.route('/export_confirmed_pdf')
+def export_confirmed_pdf():
+    if not session.get('admin'):
+        return "Unauthorized", 403
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Title
+    elements.append(Paragraph("Confirmed Orders Summary", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    confirmed_orders = Order.query.filter_by(status="Confirmed").all()
+
+    # Table header
+    data = [["Name", "Phone", "Items Ordered", "Total Paid (USD)"]]
+
+    for order in confirmed_orders:
+        # Use line breaks for each item
+        formatted_items = Paragraph(order.items_ordered.replace(", ", "<br/>"), styles['Normal'])
+        data.append([
+            order.user.zelle_name,
+            order.user.phone,
+            formatted_items,
+            f"${order.total_price_usd:.2f}"
+        ])
+
+    # Create styled table
+    table = Table(data, colWidths=[120, 100, 260, 80])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
+    buffer.seek(0)
+
+    return send_file(buffer, as_attachment=True, download_name="confirmed_orders.pdf", mimetype='application/pdf')
 
 if __name__ == '__main__':
     with app.app_context():
