@@ -1,20 +1,27 @@
+# 🔹 1. Standard Library
 import os
 from io import BytesIO
 from datetime import timedelta
 
+# 🔹 2. Environment Variables
 from dotenv import load_dotenv
 load_dotenv()
 
-# Flask core
+# 🔹 3. Utility Libraries
+from fractions import Fraction
+import re
+
+# 🔹 4. Flask Core and Extensions
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 
-# ReportLab for PDF generation
+# 🔹 5. PDF ReportLab Libraries
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+
 
 # App configuration
 from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
@@ -40,11 +47,35 @@ class Order(db.Model):
     total_price_usd = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), default='Pending')
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
+    #goat_share = db.Column(db.String(10))  # e.g., '1/3', '1/2', '1'
 
 class Config(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True)
     value = db.Column(db.Float)
+
+# Helper Function 
+def is_valid_goat_total(pending_share="0", include_current=True):
+    total = Fraction(0)
+
+    # This now gets all orders, not just confirmed ones
+    orders = Order.query.all()
+
+    for order in orders:
+        if order.status == 'Confirmed' or include_current:
+            matches = re.findall(r"Goat:\s*([\d/]+)", order.items_ordered)
+            for match in matches:
+                try:
+                    total += Fraction(match.strip())
+                except:
+                    continue
+
+    try:
+        total += Fraction(pending_share.strip())
+    except:
+        pass
+
+    return total.denominator == 1
 
 @app.route('/')
 def index():
@@ -75,26 +106,42 @@ def submit_order():
     zelle_name = request.form.get('zelle_name')
     phone = request.form.get('phone')
 
-    # 🔐 Validate phone number is exactly 10 digits
+    # 🔐 Validate phone number
     if not phone.isdigit() or len(phone) != 10:
         return "Phone number must be exactly 10 digits.", 400
-    
+
     items_ordered = []
     total = 0.0
+
     for key, price in PRICES.items():
         val = request.form.get(key)
-        if val and float(val) > 0:
-            total += float(val) * price
-            label = LABELS.get(key, key)
-            items_ordered.append(f"{label}: {val}")
+        if val:
+            try:
+                # Handle goat share using Fraction
+                if key == 'goat':
+                    share = float(Fraction(val))
+                    if share > 0:
+                        total += share * price
+                        items_ordered.append(f"Goat: {val}")
+                else:
+                    quantity = float(val)
+                    if quantity > 0:
+                        label = LABELS.get(key, key)
+                        total += quantity * price
+                        items_ordered.append(f"{label}: {int(quantity) if quantity.is_integer() else quantity}")
+            except (ValueError, ZeroDivisionError):
+                continue  # Ignore invalid values
 
     items_str = ', '.join(items_ordered) if items_ordered else "No items"
+
+    # Get or create the user
     user = User.query.filter_by(phone=phone).first()
     if not user:
         user = User(zelle_name=zelle_name, phone=phone)
         db.session.add(user)
         db.session.commit()
 
+    # Create or update the order
     existing_order = Order.query.filter_by(user_id=user.id).first()
     if existing_order:
         existing_order.items_ordered = items_str
@@ -123,7 +170,10 @@ def admin_login():
 def confirm_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
+
     order = Order.query.get_or_404(order_id)
+
+    # ✅ Skip goat share validation
     order.status = 'Confirmed'
     db.session.commit()
     return redirect('/dashboard')

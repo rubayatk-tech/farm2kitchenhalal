@@ -18,15 +18,25 @@
                 <label for="phone" class="form-label">Phone Number (Required)</label>
                 <input type="tel" class="form-control" name="phone" required>
             </div>
-            
+
             <h5 class="mt-4">Select Your Items</h5>
             <div class="row">
                 {% for key, label in labels.items() %}
                 <div class="col-md-6 mb-3">
+                    {% if key == 'goat' %}
+                    <label for="{{ key }}" class="form-label">{{ label }} - Share</label>
+                    <select class="form-select" name="goat">
+                        <option value="0">-- Select --</option>
+                        <option value="1">Goat (Full)</option>
+                        <option value="1/2">Goat (1/2) Share</option>
+                        <option value="1/3">Goat (1/3) Share</option>
+                    </select>
+                    {% else %}
                     <label for="{{ key }}" class="form-label">
                         {{ label }} - ${{ "%.2f"|format(prices[key]) }}
                     </label>
                     <input type="number" step="0.01" min="0" class="form-control" name="{{ key }}">
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
