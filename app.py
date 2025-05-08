@@ -46,6 +46,7 @@ class Order(db.Model):
     items_ordered = db.Column(db.String(500), nullable=False)
     total_price_usd = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), default='Pending')
+    source = db.Column(db.String(20), default='regular')
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
     #goat_share = db.Column(db.String(10))  # e.g., '1/3', '1/2', '1'
 
@@ -77,10 +78,12 @@ def is_valid_goat_total(pending_share="0", include_current=True):
 
     return total.denominator == 1
 
+# Main Landing Page 
 @app.route('/')
 def index():
     return render_template('index.html', prices=PRICES, labels=LABELS)
 
+# Dashboard Route 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if request.method == 'POST' and session.get('admin'):
@@ -101,6 +104,7 @@ def dashboard():
     shared_per_order = (shared_cost / num_orders) if num_orders else 0
     return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False))
 
+# Submitting an Order Route 
 @app.route('/submit_order', methods=['POST'])
 def submit_order():
     zelle_name = request.form.get('zelle_name')
@@ -153,6 +157,8 @@ def submit_order():
     db.session.commit()
     return redirect('/dashboard')
 
+
+# Admin User Login  
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     session.permanent = True
@@ -166,6 +172,8 @@ def admin_login():
             return "Access denied", 403
     return render_template('admin_login.html')
 
+# Admin User confirming order   
+
 @app.route('/confirm_order/<int:order_id>', methods=['POST'])
 def confirm_order(order_id):
     if not session.get('admin'):
@@ -178,11 +186,13 @@ def confirm_order(order_id):
     db.session.commit()
     return redirect('/dashboard')
 
+# Admin User Logging Out   
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/dashboard')
 
+# Admin User Clearing all the orders
 @app.route('/clear_orders', methods=['POST'])
 def clear_orders():
     if not session.get('admin'):
@@ -292,7 +302,62 @@ def delete_order(order_id):
     order = Order.query.get_or_404(order_id)
     db.session.delete(order)
     db.session.commit()
-    return redirect('/dashboard')
+    return redirect(request.args.get('next', '/dashboard'))
+
+@app.route('/qurbani_order')
+def qurbani_order():
+    return render_template('qurbani.html')
+
+@app.route('/submit_qurbani_order', methods=['POST'])
+def submit_qurbani_order():
+    zelle_name = request.form.get('zelle_name')
+    phone = request.form.get('phone')
+
+    if not phone.isdigit() or len(phone) != 10:
+        return "Phone number must be exactly 10 digits.", 400
+
+    items_ordered = []
+    total = 0.0
+
+    # Define prices — or pull from config.py if already defined
+    qurbani_prices = {
+        "cow_share": PRICES.get("cow_share", 0),
+        "goat_full": PRICES.get("goat", 0),
+        "sheep": PRICES.get("sheep", 0),
+        "lamb": PRICES.get("lamb", 0),
+    }
+
+    for key in qurbani_prices:
+        val = request.form.get(key)
+        if val and float(val) > 0:
+            quantity = float(val)
+            total += quantity * qurbani_prices[key]
+            label = key.replace("_", " ").title()
+            items_ordered.append(f"{label}: {int(quantity) if quantity.is_integer() else quantity}")
+
+    items_str = ', '.join(items_ordered) if items_ordered else "No items"
+
+    user = User.query.filter_by(phone=phone).first()
+    if not user:
+        user = User(zelle_name=zelle_name, phone=phone)
+        db.session.add(user)
+        db.session.commit()
+
+    new_order = Order(user_id=user.id, items_ordered=items_str, total_price_usd=total, status="Pending", source="qurbani")
+    db.session.add(new_order)
+    db.session.commit()
+
+    return redirect('/qurbani_dashboard')
+
+@app.route('/qurbani_dashboard')
+def qurbani_dashboard():
+    keywords = ["Cow", "Goat", "Sheep", "Lamb"]
+    all_orders = Order.query.all()
+    qurbani_orders = [
+        order for order in all_orders
+        if any(word in order.items_ordered for word in keywords)
+    ]
+    return render_template('qurbani_dashboard.html', orders=qurbani_orders, is_admin=session.get('admin', False))
 
 if __name__ == '__main__':
     with app.app_context():

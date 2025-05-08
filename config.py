@@ -11,7 +11,14 @@ PRICES = {
     "duck": float(os.getenv("PRICE_DUCK", 20.0)),
     "quail": float(os.getenv("PRICE_QUAIL", 6.0)),
     "turkey": float(os.getenv("PRICE_TURKEY", 70.0)),
-    "egg": float(os.getenv("PRICE_EGG", 6.0))
+    "egg": float(os.getenv("PRICE_EGG", 6.0)),
+
+    # 🐄 Qurbani-specific
+    "cow_share": float(os.getenv("PRICE_COW_SHARE", 350.0)),
+    "sheep": float(os.getenv("PRICE_SHEEP", 260.0)),
+    "lamb": float(os.getenv("PRICE_LAMB", 300.0))
+
+
 }
 
 LABELS = {
@@ -25,7 +32,13 @@ LABELS = {
     "duck": "Duck",
     "quail": "Quail",
     "turkey": "Turkey",
-    "egg": "Egg (Dozen)"
+    "egg": "Egg (Dozen)",
+
+    # 🐄 Qurbani labels
+    "cow_share": "Cow (1/7) Share",
+    "sheep": "Full Sheep",
+    "lamb": "Full Lamb"
+
 }
 
 ALLOWED_ADMINS = os.getenv("ADMIN_PHONES", "").split(",")

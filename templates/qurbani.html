@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Farm2Kitchen - Qurbani Order</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Qurbani Order Form</h1>
+        <form method="POST" action="/submit_qurbani_order" class="bg-white p-4 rounded shadow-sm">
+            <div class="mb-3">
+                <label for="zelle_name" class="form-label">Your Full Name</label>
+                <input type="text" class="form-control" name="zelle_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number (Required)</label>
+                <input type="tel" class="form-control" name="phone" required>
+            </div>
+
+            <h5 class="mt-4">Select Qurbani Items</h5>
+            <div class="row">
+                {% set quantity_options = [1, 2, 3, 4, 5, 6, 7] %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Cow (1/7th Share)</label>
+                    <select class="form-select" name="cow_share">
+                        <option value="">-- Select --</option>
+                        {% for i in quantity_options %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Goat</label>
+                    <select class="form-select" name="goat_full">
+                        <option value="">-- Select --</option>
+                        {% for i in quantity_options %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Sheep</label>
+                    <select class="form-select" name="sheep">
+                        <option value="">-- Select --</option>
+                        {% for i in quantity_options %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Lamb</label>
+                    <select class="form-select" name="lamb">
+                        <option value="">-- Select --</option>
+                        {% for i in quantity_options %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-success">Submit Qurbani Order</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/qurbani_dashboard" class="btn btn-link">View Qurbani Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

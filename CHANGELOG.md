@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased]
-- Feature 3 (Goat dropdown + validation) – In progress
+## [v1.3] – 2025-05-06
+- Feature: Adding Qurabani Route
+
+
+## [v1.2.1] – 2025-05-06
+- Feature: (Goat dropdown Menu) 
 
 ---
 
