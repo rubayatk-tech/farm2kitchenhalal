@@ -4,9 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [v1.3] – 2025-05-06
-- Feature: Adding Qurabani Route
+## [v1.3.0] – 2025-05-08
 
+### ✨ Features
+- Added `/qurbani_order` route with dropdown-based Qurbani order form (Cow, Goat, Sheep, Lamb)
+- Introduced `/qurbani_dashboard` with admin-only controls (Confirm, Edit, Delete)
+- Added PDF export for confirmed Qurbani orders (`/export_qurbani_confirmed_pdf`)
+- New model field `source` added to distinguish regular vs Qurbani orders
+- Admin login page restyled and branded as "Farm2Kitchen Admin Login"
+- Main `/dashboard` now includes Shared Cost and Total Due columns
+- Shared Cost is applied equally to confirmed regular orders
+- Restored "Clear All Orders" functionality (excludes Qurbani orders)
+- Added prominent "Qurbani Order" button on homepage (seasonal promotion)
+
+### 🛠 Fixes & Improvements
+- `/confirm_order`, `/delete_order` now support `?next=` to preserve origin dashboard
+- `/dashboard` and `/export_confirmed_pdf` now only show regular orders
+- `/qurbani_dashboard` fully filtered by `source='qurbani'`
+- Fixed goat price calculation by using `goat_full` instead of `goat (per lb)`
+
+---
+
+## [v1.2.2] – 2025-05-06
+- Feature: Adding Qurbani Route
+
+---
 
 ## [v1.2.1] – 2025-05-06
 - Feature: (Goat dropdown Menu) 

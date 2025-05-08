@@ -8,6 +8,12 @@
 <body class="bg-light">
     <div class="container py-4">
         <h1 class="text-center mb-4">Qurbani Orders Dashboard</h1>
+        {% if is_admin %}
+        <div class="text-end mb-3">
+            <a href="/export_qurbani_confirmed_pdf" class="btn btn-outline-primary btn-sm">Export Confirmed Orders as PDF</a>
+        </div>
+        {% endif %}
+
         {% if orders %}
         <table class="table table-bordered bg-white shadow-sm">
             <thead>
@@ -33,7 +39,7 @@
                     {% if is_admin %}
                     <td>
                         {% if order.status != 'Confirmed' %}
-                        <form method="POST" action="/confirm_order/{{ order.id }}" style="display:inline;">
+                        <form method="POST" action="/confirm_order/{{ order.id }}?next=/qurbani_dashboard" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-success">Confirm</button>
                         </form>
                         {% endif %}

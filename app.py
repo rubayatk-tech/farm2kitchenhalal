@@ -97,7 +97,7 @@ def dashboard():
         db.session.commit()
         return redirect('/dashboard')
 
-    orders = Order.query.all()
+    orders = Order.query.filter_by(source="regular").all()
     shared_cost_cfg = Config.query.filter_by(key='shared_cost').first()
     shared_cost = shared_cost_cfg.value if shared_cost_cfg else 0
     num_orders = len(orders)
@@ -157,7 +157,7 @@ def submit_order():
     db.session.commit()
     return redirect('/dashboard')
 
-
+### Adninistrative Features ###
 # Admin User Login  
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
@@ -184,7 +184,7 @@ def confirm_order(order_id):
     # ✅ Skip goat share validation
     order.status = 'Confirmed'
     db.session.commit()
-    return redirect('/dashboard')
+    return redirect(request.args.get('next', '/dashboard'))  # ✅ Support dynamic redirect
 
 # Admin User Logging Out   
 @app.route('/logout')
@@ -197,11 +197,11 @@ def logout():
 def clear_orders():
     if not session.get('admin'):
         return "Unauthorized", 403
-    Order.query.delete()
+    Order.query.filter_by(source="regular").delete()
     db.session.commit()
     return redirect('/dashboard')
 
-
+# Admin User editing the orders
 @app.route('/edit_order/<int:order_id>', methods=['GET', 'POST'])
 def edit_order(order_id):
     if not session.get('admin'):
@@ -246,6 +246,7 @@ def edit_order(order_id):
         quantities=quantities
     )
 
+# Admin User exporting the confirmed orders as pdf 
 @app.route('/export_confirmed_pdf')
 def export_confirmed_pdf():
     if not session.get('admin'):
@@ -260,7 +261,7 @@ def export_confirmed_pdf():
     elements.append(Paragraph("Confirmed Orders Summary", styles['Title']))
     elements.append(Spacer(1, 12))
 
-    confirmed_orders = Order.query.filter_by(status="Confirmed").all()
+    confirmed_orders = Order.query.filter_by(status='Confirmed', source='regular').all()
 
     # Table header
     data = [["Name", "Phone", "Items Ordered", "Total Paid (USD)"]]
@@ -295,6 +296,7 @@ def export_confirmed_pdf():
 
     return send_file(buffer, as_attachment=True, download_name="confirmed_orders.pdf", mimetype='application/pdf')
 
+# Admin User deleting order 
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
 def delete_order(order_id):
     if not session.get('admin'):
@@ -304,10 +306,16 @@ def delete_order(order_id):
     db.session.commit()
     return redirect(request.args.get('next', '/dashboard'))
 
+### Adninistrative Features ###
+
+#### v1.3 Deployment - Qurbani Feature, should be modularized to remove it - since this is seasonal and not recurring ###
+#### Administrativ
+# Qurbani Order Form
 @app.route('/qurbani_order')
 def qurbani_order():
     return render_template('qurbani.html')
 
+# Submitting order route 
 @app.route('/submit_qurbani_order', methods=['POST'])
 def submit_qurbani_order():
     zelle_name = request.form.get('zelle_name')
@@ -322,7 +330,7 @@ def submit_qurbani_order():
     # Define prices — or pull from config.py if already defined
     qurbani_prices = {
         "cow_share": PRICES.get("cow_share", 0),
-        "goat_full": PRICES.get("goat", 0),
+        "goat_full": PRICES.get("goat_full", 0),
         "sheep": PRICES.get("sheep", 0),
         "lamb": PRICES.get("lamb", 0),
     }
@@ -349,15 +357,57 @@ def submit_qurbani_order():
 
     return redirect('/qurbani_dashboard')
 
+# Qurbani Dashboard view 
 @app.route('/qurbani_dashboard')
 def qurbani_dashboard():
-    keywords = ["Cow", "Goat", "Sheep", "Lamb"]
-    all_orders = Order.query.all()
-    qurbani_orders = [
-        order for order in all_orders
-        if any(word in order.items_ordered for word in keywords)
-    ]
+    qurbani_orders = Order.query.filter_by(source='qurbani').all()
     return render_template('qurbani_dashboard.html', orders=qurbani_orders, is_admin=session.get('admin', False))
+
+# Qurabani confirmed orders export 
+@app.route('/export_qurbani_confirmed_pdf')
+def export_qurbani_confirmed_pdf():
+    if not session.get('admin'):
+        return "Unauthorized", 403
+
+    confirmed_orders = Order.query.filter_by(status='Confirmed', source='qurbani').all()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph("Confirmed Qurbani Orders", styles['Heading1']))
+    elements.append(Spacer(1, 12))
+
+    data = [["Name", "Phone", "Items Ordered", "Total ($)", "Status"]]
+    for order in confirmed_orders:
+        row = [
+            order.user.zelle_name,
+            order.user.phone,
+            order.items_ordered,
+            f"${order.total_price_usd:.2f}",
+            order.status
+        ]
+        data.append(row)
+
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('ALIGN', (3,1), (3,-1), 'RIGHT'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="confirmed_qurbani_orders.pdf", mimetype='application/pdf')
+
+
+#### v1.3 Deployment - Qurbani Feature, should be modularized to remove it - since this is seasonal and not recurring ###
+
 
 if __name__ == '__main__':
     with app.app_context():

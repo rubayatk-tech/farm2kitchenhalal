@@ -15,6 +15,7 @@ PRICES = {
 
     # 🐄 Qurbani-specific
     "cow_share": float(os.getenv("PRICE_COW_SHARE", 350.0)),
+    "goat_full": float(os.getenv("PRICE_GOAT_FULL", 280.0)),  # 🐐 full goat
     "sheep": float(os.getenv("PRICE_SHEEP", 260.0)),
     "lamb": float(os.getenv("PRICE_LAMB", 300.0))
 
@@ -23,7 +24,7 @@ PRICES = {
 
 LABELS = {
     "cow": "Cow (lbs)",
-    "goat": "Goat (lbs)",
+    "goat": "Goat Share (lbs)",
     "dh_off": "Desi Hard (Skin OFF)",
     "dh_on": "Desi Hard (Skin ON)",
     "yh": "Young Hen",
@@ -36,6 +37,7 @@ LABELS = {
 
     # 🐄 Qurbani labels
     "cow_share": "Cow (1/7) Share",
+    "goat_full": "Full Goat",
     "sheep": "Full Sheep",
     "lamb": "Full Lamb"
 
