@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 ---
+## [v1.4.0] – 2025-05-14
+
+### ✨ Qurbani-Only Seasonal Release
+- Replaced traditional menu with Qurbani-specific options:
+  - Cow (1/7) Share
+  - Full Goat
+  - Full Sheep
+  - Full Lamb
+- Repurposed the regular order form as a Qurbani Order Form
+- Cleaned all previous poultry/egg-based items and routes
+- Admin Dashboard:
+  - View, Edit, Confirm, and Delete Qurbani orders
+  - Apply shared cost across confirmed orders
+  - Export confirmed orders to PDF
+- Login-protected admin panel with support for multiple phone numbers
+- General code cleanup and route simplification for seasonal focus
+
+> **Note**: This release deprecates regular ordering features. Use v1.3.0 tag to restore previous menu.
 
 ## [v1.3.0] – 2025-05-08
 
