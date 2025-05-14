@@ -23,6 +23,13 @@
             <div class="row">
                 {% for key, label in labels.items() %}
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Select Animal Tag</label>
+                    <select class="form-select" name="cattle_tag">
+                        <option value="">-- Select Tag --</option>
+                        {% for tag in ['A', 'B', 'C', 'D'] %}
+                        <option value="{{ tag }}">{{ tag }}</option>
+                        {% endfor %}
+                    </select>
                     <label for="{{ key }}" class="form-label">
                         {{ label }} - ${{ "%.2f"|format(prices[key]) }}
                     </label>

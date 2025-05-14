@@ -34,6 +34,7 @@
                         <th>Name</th>
                         <th>Phone</th>
                         <th>Items Ordered</th>
+                        <th>Cattle Tag</th>
                         <th>Total Price</th>
                         <th>Shared Cost</th>
                         <th>Total Due</th>
@@ -49,6 +50,7 @@
                         <td>{{ order.user.zelle_name }}</td>
                         <td>{{ order.user.phone }}</td>
                         <td>{{ order.items_ordered }}</td>
+                        <td>{{ order.cattle_tag or '—' }}</td>
                         <td>${{ "%.2f"|format(order.total_price_usd) }}</td>
                         <td>
                           {% if shared_per_order is defined %}

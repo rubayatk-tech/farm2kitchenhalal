@@ -48,6 +48,7 @@ class Order(db.Model):
     status = db.Column(db.String(50), default='Pending')
     source = db.Column(db.String(20), default='regular')
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
+    cattle_tag = db.Column(db.String(5), nullable=True)
     #goat_share = db.Column(db.String(10))  # e.g., '1/3', '1/2', '1'
 
 class Config(db.Model):
@@ -104,7 +105,8 @@ def dashboard():
     shared_per_order = (shared_cost / num_orders) if num_orders else 0
     return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False))
 
-# Submitting an Order Route 
+from fractions import Fraction  # Make sure this is at the top
+
 @app.route('/submit_order', methods=['POST'])
 def submit_order():
     zelle_name = request.form.get('zelle_name')
@@ -121,7 +123,6 @@ def submit_order():
         val = request.form.get(key)
         if val:
             try:
-                # Handle goat share using Fraction
                 if key == 'goat':
                     share = float(Fraction(val))
                     if share > 0:
@@ -137,6 +138,7 @@ def submit_order():
                 continue  # Ignore invalid values
 
     items_str = ', '.join(items_ordered) if items_ordered else "No items"
+    cattle_tag = request.form.get('cattle_tag')
 
     # Get or create the user
     user = User.query.filter_by(phone=phone).first()
@@ -150,12 +152,19 @@ def submit_order():
     if existing_order:
         existing_order.items_ordered = items_str
         existing_order.total_price_usd = total
+        existing_order.cattle_tag = cattle_tag
     else:
-        new_order = Order(user_id=user.id, items_ordered=items_str, total_price_usd=total)
+        new_order = Order(
+            user_id=user.id,
+            items_ordered=items_str,
+            total_price_usd=total,
+            cattle_tag=cattle_tag
+        )
         db.session.add(new_order)
 
     db.session.commit()
     return redirect('/dashboard')
+
 
 ### Adninistrative Features ###
 # Admin User Login  
