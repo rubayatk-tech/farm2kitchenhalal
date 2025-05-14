@@ -11,6 +11,9 @@
 
         {% if is_admin %}
         <div class="text-end mb-3">
+            <a href="/logout" class="btn btn-outline-primary btn-sm">Logout</a>
+        </div>
+        <div class="text-end mb-3">
             <a href="/export_confirmed_pdf" class="btn btn-outline-primary btn-sm">Export Confirmed Orders as PDF</a>
         </div>
         <form method="POST" action="/dashboard" class="mb-3 d-flex align-items-center">

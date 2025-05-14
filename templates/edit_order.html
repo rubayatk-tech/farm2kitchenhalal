@@ -7,10 +7,11 @@
 <body>
   <h2>Edit Order for {{ order.user.zelle_name }} ({{ order.user.phone }})</h2>
   <form method="post" id="editOrderForm">
-    {% for key, label in labels.items() %}
-      <label for="{{ key }}">{{ label }}:</label>
-      <input type="number" name="{{ key }}" id="{{ key }}" value="{{ quantities.get(key, 0) }}"><br><br>
-    {% endfor %}
+  {% for key, label in labels.items() %}
+  <label for="{{ key }}">{{ label }}:</label>
+  <input type="number" name="{{ key }}" id="{{ key }}" value="{{ quantities.get(key, 0) }}"><br><br>
+  {% endfor %}
+
 
     <label>Total Price (USD):</label><br>
     <input type="text" id="total_price_usd" name="total_price_usd" readonly><br><br>
