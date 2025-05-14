@@ -28,7 +28,7 @@ from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
 db = SQLAlchemy(app)

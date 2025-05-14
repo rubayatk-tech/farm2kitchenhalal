@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 
 ---
+
+## [v1.4.1] – 2025-05-14
+### 🔧 Feature Enhancement: Cow Sizes Split Ordering
+Replaced single "Cow (1/7) Share" option with:
+
+🐄 Cow Size 1 (Large) – 1/7 share of a $4000 cow
+
+🐄 Cow Size 2 (Small) – 1/7 share of a $2000 cow
+
+Updated pricing logic to reflect per-share cost of each cow size
+
+Updated order form UI to support both cow sizes with separate selection
+
+Cleaned up legacy cattle tagging logic for simplicity and future flexibility
+
+Deployed new PostgreSQL-backed database for long-term durability
+
+Reset order history for cleaner tracking under new pricing model
+
+Note: All prior orders have been cleared as part of the migration. Customers are kindly asked to resubmit using the new form.
+
 ## [v1.4.0] – 2025-05-14
 
 ### ✨ Qurbani-Only Seasonal Release
