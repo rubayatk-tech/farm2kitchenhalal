@@ -3,7 +3,7 @@ import os
 PRICES = {
     # 🐄 Qurbani-specific
     "cow_share": float(os.getenv("PRICE_COW_SHARE", 525.0)),
-    "goat_full": float(os.getenv("PRICE_GOAT_FULL", 400.0)),  # 🐐 full goat
+    "goat_full": float(os.getenv("PRICE_GOAT_FULL", 450.0)),  # 🐐 full goat
     "sheep": float(os.getenv("PRICE_SHEEP", 350.0)),
     "lamb": float(os.getenv("PRICE_LAMB", 350.0))
 
