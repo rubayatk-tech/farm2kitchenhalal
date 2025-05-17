@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v1.4.2] – 2025-05-17
+### 💳 Payment Tracking & Admin Enhancements
+Added new amount_paid field to each order (schema updated in production)
+
+Introduced "Amount Paid" and "Remaining Due" columns to the dashboard
+
+Remaining Due is color-coded:
+
+🔴 Red = balance due
+
+🟢 Green = overpayment (if any)
+
+⚪️ Gray = exact payment
+
+Added inline admin form to record payments per customer
+
+New summary card displays Total Amount Received
+
+All changes are backward-compatible — existing orders remain untouched
+
+Note: This version includes only backend and dashboard logic updates. Pricing changes, if needed, will be included in a future release.
+
 ## [v1.4.1] – 2025-05-14
 ### 🔧 Feature Enhancement: Cow Sizes Split Ordering
 Replaced single "Cow (1/7) Share" option with:
