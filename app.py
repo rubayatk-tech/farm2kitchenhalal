@@ -48,6 +48,7 @@ class Order(db.Model):
     status = db.Column(db.String(50), default='Pending')
     source = db.Column(db.String(20), default='regular')
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
+    amount_paid = db.Column(db.Float, default=0.0)
     #cattle_tag = db.Column(db.String(5), nullable=True)
     #goat_share = db.Column(db.String(10))  # e.g., '1/3', '1/2', '1'
 
@@ -103,7 +104,8 @@ def dashboard():
     shared_cost = shared_cost_cfg.value if shared_cost_cfg else 0
     num_orders = len(orders)
     shared_per_order = (shared_cost / num_orders) if num_orders else 0
-    return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False))
+    total_received = sum(order.amount_paid or 0.0 for order in orders)
+    return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False),total_received=total_received)
 
 from fractions import Fraction  # Make sure this is at the top
 
@@ -305,6 +307,20 @@ def delete_order(order_id):
     db.session.delete(order)
     db.session.commit()
     return redirect(request.args.get('next', '/dashboard'))
+
+# Admin update payments
+@app.route('/update_payment/<int:order_id>', methods=['POST'])
+def update_payment(order_id):
+    if not session.get('admin'):
+        return "Unauthorized", 403
+    order = Order.query.get_or_404(order_id)
+    new_amount = request.form.get('amount_paid')
+    try:
+        order.amount_paid = float(new_amount)
+        db.session.commit()
+    except:
+        pass  # Handle bad inputs gracefully
+    return redirect('/dashboard')
 
 
 if __name__ == '__main__':
