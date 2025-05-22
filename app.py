@@ -266,7 +266,7 @@ def export_confirmed_pdf():
     confirmed_orders = Order.query.filter_by(status='Confirmed', source='regular').all()
 
     # Table header
-    data = [["Name", "Phone", "Items Ordered", "Total Paid (USD)"]]
+    data = [["Name", "Phone", "Items Ordered", "Total Paid (excl. Shp Cost)"]]
 
     for order in confirmed_orders:
         # Use line breaks for each item
@@ -279,7 +279,7 @@ def export_confirmed_pdf():
         ])
 
     # Create styled table
-    table = Table(data, colWidths=[120, 100, 260, 80])
+    table = Table(data, colWidths=[120, 100, 200, 120])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
