@@ -20,7 +20,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 
 # App configuration
-from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
+from config import PRICES, LABELS, UNITS, ALLOWED_ADMINS, ADMIN_PASSWORD
 
 
 app = Flask(__name__)
@@ -58,7 +58,7 @@ class Config(db.Model):
 # Main Landing Page
 @app.route('/')
 def index():
-    return render_template('index.html', prices=PRICES, labels=LABELS)
+    return render_template('index.html', prices=PRICES, labels=LABELS, units=UNITS)
 
 # Dashboard Route 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -101,8 +101,10 @@ def submit_order():
                 quantity = float(val)
                 if quantity > 0:
                     label = LABELS.get(key, key)
+                    unit = UNITS.get(key, "each")
                     total += quantity * price
-                    items_ordered.append(f"{label}: {int(quantity) if quantity.is_integer() else quantity}")
+                    qty_str = int(quantity) if quantity.is_integer() else quantity
+                    items_ordered.append(f"{label}: {qty_str} {unit}")
             except (ValueError, ZeroDivisionError):
                 continue  # Ignore invalid values
 
@@ -206,8 +208,8 @@ def edit_order(order_id):
         label = LABELS[key]
         if label in order.items_ordered:
             try:
-                part = order.items_ordered.split(label + ":")[1].split(",")[0].strip()
-                quantities[key] = int(part)
+                part = order.items_ordered.split(label + ":")[1].split(",")[0].strip().split()[0]
+                quantities[key] = int(float(part))
             except:
                 quantities[key] = 0
         else:
