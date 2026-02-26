@@ -1,5 +1,6 @@
 # 🔹 1. Standard Library
 import os
+import json
 from io import BytesIO
 from datetime import timedelta
 
@@ -47,20 +48,32 @@ class Order(db.Model):
     source = db.Column(db.String(20), default='regular')
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
     amount_paid = db.Column(db.Float, default=0.0)
-    #cattle_tag = db.Column(db.String(5), nullable=True)
-    #goat_share = db.Column(db.String(10))  # e.g., '1/3', '1/2', '1'
+    price_snapshot = db.Column(db.Text, nullable=True)  # JSON: prices at time of order
+
+class ItemPrice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)
+    price = db.Column(db.Float, nullable=False)
 
 class Config(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True)
     value = db.Column(db.Float)
 
+
+def get_current_prices():
+    """Return prices from DB, falling back to config.py defaults for any missing keys."""
+    db_prices = {p.key: p.price for p in ItemPrice.query.all()}
+    return {key: db_prices.get(key, PRICES[key]) for key in PRICES}
+
+
 # Main Landing Page
 @app.route('/')
 def index():
-    return render_template('index.html', prices=PRICES, labels=LABELS, units=UNITS)
+    current_prices = get_current_prices()
+    return render_template('index.html', prices=current_prices, labels=LABELS, units=UNITS)
 
-# Dashboard Route 
+# Dashboard Route
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if request.method == 'POST' and session.get('admin'):
@@ -80,21 +93,31 @@ def dashboard():
     num_orders = len(orders)
     shared_per_order = (shared_cost / num_orders) if num_orders else 0
     total_received = sum(order.amount_paid or 0.0 for order in orders)
-    return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False),total_received=total_received)
+    current_prices = get_current_prices()
+    return render_template(
+        'dashboard.html',
+        orders=orders,
+        shared_per_order=shared_per_order,
+        is_admin=session.get('admin', False),
+        total_received=total_received,
+        current_prices=current_prices,
+        labels=LABELS,
+        units=UNITS
+    )
 
 @app.route('/submit_order', methods=['POST'])
 def submit_order():
     zelle_name = request.form.get('zelle_name')
     phone = request.form.get('phone')
 
-    # 🔐 Validate phone number
     if not phone.isdigit() or len(phone) != 10:
         return "Phone number must be exactly 10 digits.", 400
 
+    current_prices = get_current_prices()
     items_ordered = []
     total = 0.0
 
-    for key, price in PRICES.items():
+    for key, price in current_prices.items():
         val = request.form.get(key)
         if val:
             try:
@@ -106,27 +129,28 @@ def submit_order():
                     qty_str = int(quantity) if quantity.is_integer() else quantity
                     items_ordered.append(f"{label}: {qty_str} {unit}")
             except (ValueError, ZeroDivisionError):
-                continue  # Ignore invalid values
+                continue
 
     items_str = ', '.join(items_ordered) if items_ordered else "No items"
+    snapshot = json.dumps(current_prices)
 
-    # Get or create the user
     user = User.query.filter_by(phone=phone).first()
     if not user:
         user = User(zelle_name=zelle_name, phone=phone)
         db.session.add(user)
         db.session.commit()
 
-    # Create or update the order
     existing_order = Order.query.filter_by(user_id=user.id).first()
     if existing_order:
         existing_order.items_ordered = items_str
         existing_order.total_price_usd = total
+        existing_order.price_snapshot = snapshot
     else:
         new_order = Order(
             user_id=user.id,
             items_ordered=items_str,
-            total_price_usd=total
+            total_price_usd=total,
+            price_snapshot=snapshot
         )
         db.session.add(new_order)
 
@@ -134,8 +158,8 @@ def submit_order():
     return redirect('/dashboard')
 
 
-### Adninistrative Features ###
-# Admin User Login  
+### Administrative Features ###
+# Admin User Login
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     session.permanent = True
@@ -149,27 +173,23 @@ def admin_login():
             return "Access denied", 403
     return render_template('admin_login.html')
 
-# Admin User confirming order   
-
+# Admin confirming order
 @app.route('/confirm_order/<int:order_id>', methods=['POST'])
 def confirm_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
-
     order = db.get_or_404(Order, order_id)
-
-    # ✅ Skip goat share validation
     order.status = 'Confirmed'
     db.session.commit()
-    return redirect(request.args.get('next', '/dashboard'))  # ✅ Support dynamic redirect
+    return redirect(request.args.get('next', '/dashboard'))
 
-# Admin User Logging Out   
+# Admin logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/dashboard')
 
-# Admin User Clearing all the orders
+# Admin clearing all orders
 @app.route('/clear_orders', methods=['POST'])
 def clear_orders():
     if not session.get('admin'):
@@ -178,13 +198,19 @@ def clear_orders():
     db.session.commit()
     return redirect('/dashboard')
 
-# Admin User editing the orders
+# Admin editing an order (uses snapshot prices to preserve original rates)
 @app.route('/edit_order/<int:order_id>', methods=['GET', 'POST'])
 def edit_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
 
     order = db.get_or_404(Order, order_id)
+
+    # Use snapshot prices if available, else fall back to current prices
+    if order.price_snapshot:
+        snapshot_prices = json.loads(order.price_snapshot)
+    else:
+        snapshot_prices = get_current_prices()
 
     if request.method == 'POST':
         quantities = {}
@@ -193,16 +219,18 @@ def edit_order(order_id):
             qty = float(request.form.get(key, 0) or 0)
             if qty > 0:
                 quantities[key] = qty
-                total_price += qty * PRICES[key]
+                total_price += qty * snapshot_prices.get(key, PRICES[key])
 
-        # Rebuild items_ordered string
-        items_ordered = ', '.join([f"{LABELS[key]}: {int(quantities[key])}" for key in quantities])
+        items_ordered = ', '.join([
+            f"{LABELS[key]}: {int(quantities[key])} {UNITS.get(key, 'each')}"
+            for key in quantities
+        ])
         order.items_ordered = items_ordered
         order.total_price_usd = total_price
         db.session.commit()
         return redirect('/dashboard')
 
-    # Extract current order into item: quantity dict
+    # Parse current quantities from stored string
     quantities = {}
     for key in PRICES:
         label = LABELS[key]
@@ -218,12 +246,33 @@ def edit_order(order_id):
     return render_template(
         "edit_order.html",
         order=order,
-        prices=PRICES,
+        snapshot_prices=snapshot_prices,
         labels=LABELS,
+        units=UNITS,
         quantities=quantities
     )
 
-# Admin User exporting the confirmed orders as pdf 
+# Admin update prices
+@app.route('/update_prices', methods=['POST'])
+def update_prices():
+    if not session.get('admin'):
+        return "Unauthorized", 403
+    for key in PRICES:
+        new_price = request.form.get(key)
+        if new_price:
+            try:
+                price = float(new_price)
+                item = ItemPrice.query.filter_by(key=key).first()
+                if item:
+                    item.price = price
+                else:
+                    db.session.add(ItemPrice(key=key, price=price))
+            except ValueError:
+                continue
+    db.session.commit()
+    return redirect('/dashboard')
+
+# Admin export confirmed orders as PDF
 @app.route('/export_confirmed_pdf')
 def export_confirmed_pdf():
     if not session.get('admin'):
@@ -234,17 +283,14 @@ def export_confirmed_pdf():
     elements = []
     styles = getSampleStyleSheet()
 
-    # Title
     elements.append(Paragraph("Confirmed Orders Summary", styles['Title']))
     elements.append(Spacer(1, 12))
 
     confirmed_orders = Order.query.filter_by(status='Confirmed', source='regular').all()
 
-    # Table header
     data = [["Name", "Phone", "Items Ordered", "Total Paid (excl. Shp Cost)"]]
 
     for order in confirmed_orders:
-        # Use line breaks for each item
         formatted_items = Paragraph(order.items_ordered.replace(", ", "<br/>"), styles['Normal'])
         data.append([
             order.user.zelle_name,
@@ -253,7 +299,6 @@ def export_confirmed_pdf():
             f"${order.total_price_usd:.2f}"
         ])
 
-    # Create styled table
     table = Table(data, colWidths=[120, 100, 200, 120])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
@@ -273,7 +318,7 @@ def export_confirmed_pdf():
 
     return send_file(buffer, as_attachment=True, download_name="confirmed_orders.pdf", mimetype='application/pdf')
 
-# Admin User deleting order 
+# Admin delete order
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
 def delete_order(order_id):
     if not session.get('admin'):
@@ -283,7 +328,7 @@ def delete_order(order_id):
     db.session.commit()
     return redirect(request.args.get('next', '/dashboard'))
 
-# Admin update payments
+# Admin update payment
 @app.route('/update_payment/<int:order_id>', methods=['POST'])
 def update_payment(order_id):
     if not session.get('admin'):
@@ -294,16 +339,24 @@ def update_payment(order_id):
         order.amount_paid = float(new_amount)
         db.session.commit()
     except:
-        pass  # Handle bad inputs gracefully
+        pass
     return redirect('/dashboard')
 
 
 with app.app_context():
     db.create_all()
+    # Add price_snapshot column to existing order table if missing
+    try:
+        db.session.execute(db.text('ALTER TABLE "order" ADD COLUMN price_snapshot TEXT'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    # Seed ItemPrice from config defaults if table is empty
+    if ItemPrice.query.count() == 0:
+        for key, price in PRICES.items():
+            db.session.add(ItemPrice(key=key, price=price))
+        db.session.commit()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
-
-
-

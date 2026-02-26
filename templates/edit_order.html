@@ -1,27 +1,36 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <title>Edit Order</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-  <h2>Edit Order for {{ order.user.zelle_name }} ({{ order.user.phone }})</h2>
-  <form method="post" id="editOrderForm">
-  {% for key, label in labels.items() %}
-  <label for="{{ key }}">{{ label }}:</label>
-  <input type="number" name="{{ key }}" id="{{ key }}" value="{{ quantities.get(key, 0) }}"><br><br>
-  {% endfor %}
+<body class="bg-light">
+  <div class="container py-4">
+    <h2>Edit Order for {{ order.user.zelle_name }} ({{ order.user.phone }})</h2>
+    <p class="text-muted small">Prices shown are locked to the rates at the time this order was placed.</p>
+    <form method="post" id="editOrderForm" class="bg-white p-4 rounded shadow-sm">
+      {% for key, label in labels.items() %}
+      <div class="mb-3">
+        <label for="{{ key }}" class="form-label">
+          {{ label }} — ${{ "%.2f"|format(snapshot_prices[key]) }}/{{ units[key] }}
+        </label>
+        <input type="number" class="form-control" name="{{ key }}" id="{{ key }}"
+               value="{{ quantities.get(key, 0) }}" min="0" step="1">
+      </div>
+      {% endfor %}
 
+      <div class="mb-3">
+        <label class="form-label">Estimated Total (USD)</label>
+        <input type="text" class="form-control" id="total_price_usd" name="total_price_usd" readonly>
+      </div>
 
-    <label>Total Price (USD):</label><br>
-    <input type="text" id="total_price_usd" name="total_price_usd" readonly><br><br>
-
-    <button type="submit">Save Changes</button>
-    <a href="/dashboard">Cancel</a>
-  </form>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="/dashboard" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+  </div>
 
   <script>
-    const prices = {{ prices | tojson }};
+    const prices = {{ snapshot_prices | tojson }};
 
     function calculateTotal() {
       let total = 0.0;

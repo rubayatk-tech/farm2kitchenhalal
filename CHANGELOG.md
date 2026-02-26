@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v2.1.0] – 2026-02-26
+### Dynamic Pricing & Price Snapshot Protection
+
+#### New Features
+- Prices are now stored in the database (`ItemPrice` table) and editable by admin from the dashboard — no redeployment needed
+- Admin dashboard includes a new "Manage Prices" section with live price editing per item
+- Each order now stores a `price_snapshot` (JSON) capturing the exact prices at submission time
+- Editing an existing order uses the locked snapshot prices, not current prices — protecting customers from retroactive rate changes
+- On first startup, `ItemPrice` table is auto-seeded from `config.py` defaults
+- Existing deployments are migrated automatically: `price_snapshot` column added to `order` table on startup if missing
+
+#### How It Works
+- New orders: prices fetched from DB → total calculated → snapshot stored with order
+- Price update: admin changes prices in dashboard → only affects future orders
+- Order edit: quantities can be changed but rates stay locked to original snapshot
+
+---
+
 ## [v2.0.0] – 2026-02-26
 ### Production Readiness & Code Cleanup
 
