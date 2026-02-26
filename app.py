@@ -7,15 +7,11 @@ from datetime import timedelta
 from dotenv import load_dotenv
 load_dotenv()
 
-# 🔹 3. Utility Libraries
-from fractions import Fraction
-import re
-
-# 🔹 4. Flask Core and Extensions
+# 🔹 3. Flask Core and Extensions
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 
-# 🔹 5. PDF ReportLab Libraries
+# 🔹 4. PDF ReportLab Libraries
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -30,7 +26,9 @@ from config import PRICES, LABELS, ALLOWED_ADMINS, ADMIN_PASSWORD
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
+app.secret_key = os.getenv("SECRET_KEY")
+if not app.secret_key:
+    raise ValueError("SECRET_KEY environment variable is not set.")
 db = SQLAlchemy(app)
 
 app.permanent_session_lifetime = timedelta(minutes=30)
@@ -57,30 +55,7 @@ class Config(db.Model):
     key = db.Column(db.String(50), unique=True)
     value = db.Column(db.Float)
 
-# Helper Function 
-def is_valid_goat_total(pending_share="0", include_current=True):
-    total = Fraction(0)
-
-    # This now gets all orders, not just confirmed ones
-    orders = Order.query.all()
-
-    for order in orders:
-        if order.status == 'Confirmed' or include_current:
-            matches = re.findall(r"Goat:\s*([\d/]+)", order.items_ordered)
-            for match in matches:
-                try:
-                    total += Fraction(match.strip())
-                except:
-                    continue
-
-    try:
-        total += Fraction(pending_share.strip())
-    except:
-        pass
-
-    return total.denominator == 1
-
-# Main Landing Page 
+# Main Landing Page
 @app.route('/')
 def index():
     return render_template('index.html', prices=PRICES, labels=LABELS)
@@ -106,8 +81,6 @@ def dashboard():
     shared_per_order = (shared_cost / num_orders) if num_orders else 0
     total_received = sum(order.amount_paid or 0.0 for order in orders)
     return render_template('dashboard.html', orders=orders, shared_per_order=shared_per_order, is_admin=session.get('admin', False),total_received=total_received)
-
-from fractions import Fraction  # Make sure this is at the top
 
 @app.route('/submit_order', methods=['POST'])
 def submit_order():
@@ -181,7 +154,7 @@ def confirm_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
 
-    order = Order.query.get_or_404(order_id)
+    order = db.get_or_404(Order, order_id)
 
     # ✅ Skip goat share validation
     order.status = 'Confirmed'
@@ -209,7 +182,7 @@ def edit_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
 
-    order = Order.query.get_or_404(order_id)
+    order = db.get_or_404(Order, order_id)
 
     if request.method == 'POST':
         quantities = {}
@@ -303,7 +276,7 @@ def export_confirmed_pdf():
 def delete_order(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
-    order = Order.query.get_or_404(order_id)
+    order = db.get_or_404(Order, order_id)
     db.session.delete(order)
     db.session.commit()
     return redirect(request.args.get('next', '/dashboard'))
@@ -313,7 +286,7 @@ def delete_order(order_id):
 def update_payment(order_id):
     if not session.get('admin'):
         return "Unauthorized", 403
-    order = Order.query.get_or_404(order_id)
+    order = db.get_or_404(Order, order_id)
     new_amount = request.form.get('amount_paid')
     try:
         order.amount_paid = float(new_amount)
@@ -327,7 +300,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     port = int(os.environ.get("PORT", 5000))  # 🔁 Render sets this env variable
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 
 

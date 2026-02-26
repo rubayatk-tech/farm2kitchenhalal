@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v2.0.0] – 2026-02-26
+### Production Readiness & Code Cleanup
+
+#### Deployment Fixes
+- Added `gunicorn==21.2.0` to `requirements.txt` for production WSGI serving
+- Added `Procfile` with `web: gunicorn app:app` for Render.com deployment
+- Moved `SECRET_KEY` from hardcoded value to environment variable (raises `ValueError` if unset)
+- Set `debug=False` in `app.run()` to prevent Werkzeug debugger exposure in production
+
+#### Code Quality
+- Removed duplicate `from fractions import Fraction` import (was imported twice)
+- Removed unused `import re`
+- Removed dead `is_valid_goat_total()` helper function (defined but never called)
+- Replaced deprecated `Order.query.get_or_404()` with `db.get_or_404(Order, id)` across all 4 routes
+
+---
+
 ## [v1.4.2] – 2025-05-17
 ### 💳 Payment Tracking & Admin Enhancements
 Added new amount_paid field to each order (schema updated in production)
