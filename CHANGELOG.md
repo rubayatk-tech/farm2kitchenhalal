@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v2.2.0] – 2026-02-27
+### Security — PIN Authentication & Dashboard Privacy
+
+#### Feature: 4-Digit PIN Authentication
+- Users must now set a 4-digit numeric PIN when submitting their first order
+- Returning users must enter their existing PIN to update their order — incorrect PIN returns a `403` error
+- PINs are never stored in plain text — hashed using Werkzeug's `generate_password_hash` (pbkdf2:sha256)
+- `pin_hash` column added to `User` model; auto-migrated on startup for existing deployments
+- Safety net: if a user record exists with no PIN set (e.g. migrated data), the first submitted PIN is accepted and registered
+
+#### Feature: Dashboard Privacy Redaction
+- Public visitors now see redacted identity data on `/dashboard`:
+  - **Name**: shown as `****`
+  - **Phone**: shown as `******XXXX` (last 4 digits only)
+- Logged-in admins continue to see full name and phone number
+- No backend changes required — `is_admin` session flag already passed to template
+
+#### Pre-deploy Note
+- Existing test user records should be cleared before deploying to production (no PIN hashes on old rows)
+
+---
+
+## [v2.1.1] – 2026-02-27
+### Pre-flight Fixes (ahead of v2.2 security work)
+
+#### Dependencies
+- Removed unused `qrcode==7.4.2` and `Pillow==10.4.0` from requirements (never imported)
+- Pinned `psycopg2-binary==2.9.11` (was unpinned, risking incompatible installs)
+
+#### Bug Fixes
+- Fixed `shared_cost` input causing HTTP 500 on non-numeric values — now silently defaults to `0.0`
+- Replaced bare `except:` in `edit_order` quantity parsing with `except (ValueError, IndexError):`
+- Replaced bare `except:` in `update_payment` float conversion with `except (ValueError, TypeError):`
+
+#### Security
+- Fixed open redirect: `?next=` parameter in `/confirm_order` and `/delete_order` now validated to be a local path only (must start with `/`, not `//`)
+
+---
+
 ## [v2.1.0] – 2026-02-26
 ### Dynamic Pricing & Price Snapshot Protection
 

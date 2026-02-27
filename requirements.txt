@@ -3,9 +3,7 @@ Flask-SQLAlchemy==3.0.5
 SQLAlchemy==2.0.40
 Werkzeug==2.3.8
 Jinja2==3.1.6
-qrcode==7.4.2
-Pillow==10.4.0
 python-dotenv==1.0.1
 reportlab==4.0.7
-psycopg2-binary
+psycopg2-binary==2.9.11
 gunicorn==21.2.0

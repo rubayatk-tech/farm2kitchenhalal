@@ -79,8 +79,8 @@
                 <tbody>
                     {% for order in orders %}
                     <tr>
-                        <td>{{ order.user.zelle_name }}</td>
-                        <td>{{ order.user.phone }}</td>
+                        <td>{% if is_admin %}{{ order.user.zelle_name }}{% else %}****{% endif %}</td>
+                        <td>{% if is_admin %}{{ order.user.phone }}{% else %}******{{ order.user.phone[-4:] }}{% endif %}</td>
                         <td>{{ order.items_ordered }}</td>
                         <td>${{ "%.2f"|format(order.total_price_usd) }}</td>
                         <td>

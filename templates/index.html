@@ -18,6 +18,11 @@
                 <label for="phone" class="form-label">Phone Number (Required)</label>
                 <input type="tel" class="form-control" name="phone" required>
             </div>
+            <div class="mb-3">
+                <label for="pin" class="form-label">4-Digit PIN (Required)</label>
+                <input type="password" class="form-control" name="pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="****" required>
+                <div class="form-text">New customers: choose a 4-digit PIN to secure your order. Returning customers: enter your existing PIN to update your order.</div>
+            </div>
 
             <h5 class="mt-4">Select Your Items (Prices are estimates)</h5>
             <div class="row">
