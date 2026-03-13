@@ -1,85 +1,164 @@
-# 🥩 Farm2Kitchen Ordering App
+# Farm2Kitchen Halal — Ordering App
 
-Farm2Kitchen is a lightweight community ordering app designed to help local meat and egg sellers manage weekly orders. It features a clean user-facing order form and a secure admin dashboard to manage submissions, confirm orders, and apply shared delivery costs.
-
----
-
-## 🚀 Features
-
-- 📝 Submit orders for chicken, duck, turkey, goat, and eggs.
-- 🔐 Admin login with phone number and password.
-- 📊 Dashboard for viewing, confirming, and clearing orders.
-- 💵 Shared delivery/tip cost split per order.
-- 📦 Order summary with price breakdown.
-- ✅ 10-digit phone validation (backend).
+**v2.2.0** — A lightweight community ordering app for a local halal meat and egg operation. Customers submit orders via a simple web form; admins manage everything from a secure dashboard.
 
 ---
 
-## 🛠️ Tech Stack & Versions
+## Features
 
-| Component         | Version   | Notes                                  |
-|------------------|-----------|----------------------------------------|
-| Python           | 3.9.6     | Used within virtual environment        |
-| pip              | 25.1.1    | Latest version; package manager        |
-| Flask            | 2.3.3     | Core web framework                     |
-| Werkzeug         | 2.3.8     | Flask dependency (WSGI toolkit)        |
-| Flask-SQLAlchemy | 3.0.5     | Flask extension for SQLAlchemy ORM     |
-| SQLAlchemy       | 2.0.40    | Database ORM                           |
-| Jinja2           | 3.1.6     | HTML templating engine used by Flask   |
-| qrcode           | 7.4.2     | Used for generating QR codes           |
-| Pillow           | 10.0.0    | Required for qrcode image rendering    |
-| Git              | 2.39.5    | Version control                        |
-| SQLite           | 3.43.2    | Lightweight SQL database backend       |
-| Virtual Env Path | `venv/`   | Activated using `source venv/bin/activate` |
+**Customer-facing**
+- Submit orders for beef, goat, poultry, duck, quail, and eggs
+- 4-digit PIN authentication — set on first order, required to update
+- Price breakdown shown at submission time; prices are locked to the snapshot at order time
+
+**Admin dashboard**
+- Secure login with phone number and password (30-minute session)
+- View, confirm, edit, and delete orders
+- Privacy redaction: public view masks names and phone numbers; admins see full data
+- Shared delivery/tip cost split across all orders
+- Payment tracking (amount paid per order)
+- Dynamic price management — update item prices from the dashboard without redeployment
+- Export confirmed orders as a PDF summary
 
 ---
 
-## 🧑‍💻 Local Development Setup
+## Item Catalogue
 
-Follow the steps below to run this project on your local machine:
+| Item | Unit | Default Price |
+|------|------|--------------|
+| Cow / Beef | lb | $6.00 |
+| Goat | lb | $10.00 |
+| Desi Hard Chicken — Skin-OFF (1–2 lbs) | each | $9.00 |
+| Desi Hard Chicken — Skin-ON (1–2 lbs) | each | $8.00 |
+| Young Hen / Poulette (3–4 lbs) | each | $17.00 |
+| Rooster (4–5 lbs) | each | $17.00 |
+| Broiler (8–9 lbs) | each | $15.00 |
+| Young Peking Duck (6 lbs & up) | each | $20.00 |
+| Quail | each | $5.00 |
+| Chicken Eggs | dozen | $5.00 |
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/farm2kitchen.git
-cd farm2kitchen
+Prices are managed via the admin dashboard and stored in the database (`ItemPrice` table). Defaults can be overridden at startup via `PRICE_*` environment variables.
+
+---
+
+## Tech Stack
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| Python | 3.9.6 | Virtual environment (`venv/`) |
+| Flask | 2.3.3 | Core web framework |
+| Werkzeug | 2.3.8 | WSGI toolkit; PIN/password hashing via `pbkdf2:sha256` |
+| Flask-SQLAlchemy | 3.0.5 | ORM extension |
+| SQLAlchemy | 2.0.40 | Database ORM |
+| Jinja2 | 3.1.6 | HTML templating |
+| python-dotenv | 1.0.1 | `.env` file loading |
+| ReportLab | 4.0.7 | PDF export |
+| psycopg2-binary | 2.9.11 | PostgreSQL adapter (production) |
+| gunicorn | 21.2.0 | WSGI server (production / Render) |
+| SQLite | 3.43.2 | Local development database |
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root for local development:
+
+```env
+SECRET_KEY=your-secret-key
+ADMIN_PHONES=1234567890,0987654321
+ADMIN_PASSWORD=your-admin-password
+
+# Optional: override default item prices at startup
+PRICE_COW_BEEF=6.0
+PRICE_GOAT=10.0
+PRICE_DESI_CHICKEN_SKIN_OFF=9.0
+PRICE_DESI_CHICKEN_SKIN_ON=8.0
+PRICE_YOUNG_HEN=17.0
+PRICE_ROOSTER=17.0
+PRICE_BROILER=15.0
+PRICE_DUCK=20.0
+PRICE_QUAIL=5.0
+PRICE_EGGS=5.0
 ```
 
-### 2. Create and Activate Virtual Environment
+In production (Render), set these as environment variables in the service dashboard. `DATABASE_URL` is set automatically by Render's PostgreSQL add-on.
+
+---
+
+## Local Development Setup
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/yourusername/farm2kitchenhalal.git
+cd farm2kitchenhalal
+```
+
+### 2. Create and activate a virtual environment
 ```bash
 python3.9 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### 3. Install dependencies
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Run the App Locally
+### 4. Configure environment variables
+```bash
+cp .env.example .env   # or create .env manually (see above)
+```
+
+### 5. Run the app
 ```bash
 python app.py
 ```
 
-### 5. Access the Web Interface
-- Open your browser and go to `http://127.0.0.1:5000`
-- Use `/dashboard` for admin interface
+### 6. Access the app
+- Customer order form: `http://127.0.0.1:5000`
+- Admin dashboard: `http://127.0.0.1:5000/dashboard`
+
+The app auto-creates the SQLite database and seeds item prices on first run.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-farm2kitchen/
+farm2kitchenhalal/
 │
-├── app.py             # Main Flask app with routes and DB models
-├── config.py          # Static configs for prices, labels, admin settings
-├── requirements.txt   # Python dependencies
+├── app.py                  # All routes, DB models, startup migrations
+├── config.py               # PRICES, LABELS, UNITS, ALLOWED_ADMINS, ADMIN_PASSWORD
+├── requirements.txt        # Python dependencies
 ├── templates/
-│   ├── index.html
-│   ├── dashboard.html
-│   └── admin_login.html
+│   ├── index.html          # Customer order form
+│   ├── dashboard.html      # Admin dashboard
+│   ├── edit_order.html     # Admin order editor
+│   └── admin_login.html    # Admin login page
+├── instance/               # Local SQLite DB files (git-ignored)
 └── README.md
 ```
 
 ---
+
+## Deployment (Render)
+
+The app is configured for deployment on [Render](https://render.com):
+
+- **Runtime**: Python, Gunicorn WSGI server
+- **Database**: Render PostgreSQL (connection string injected as `DATABASE_URL`)
+- **Start command**: `gunicorn app:app`
+- On startup, the app runs `db.create_all()` and auto-migrates any missing columns, so redeployment is non-destructive
+
+---
+
+## Changelog
+
+| Version | Summary |
+|---------|---------|
+| v2.2.0 | PIN authentication for customers; dashboard privacy redaction; security fixes |
+| v2.1.0 | Dynamic pricing via DB; per-order price snapshots; new poultry/farm item catalogue |
+| v2.0.0 | Production readiness; PostgreSQL support; Render deployment |
+| v1.4.2 | Amount paid tracking and payment summary |
+| v1.4.1 | Cow size split ordering; separate DB |
