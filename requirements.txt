@@ -1,5 +1,6 @@
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
+Flask-WTF==1.2.1
 SQLAlchemy==2.0.40
 Werkzeug==2.3.8
 Jinja2==3.1.6
@@ -7,3 +8,5 @@ python-dotenv==1.0.1
 reportlab==4.0.7
 psycopg2-binary==2.9.11
 gunicorn==21.2.0
+flask-limiter==3.5.0
+pytest==8.1.1

@@ -13,6 +13,7 @@
                     <div class="card-body">
                         <h3 class="text-center mb-4 text-primary">Farm2Kitchen Admin Login</h3>
                         <form action="/admin_login" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-3">
                                 <label for="phone" class="form-label">Phone Number</label>
                                 <input type="text" class="form-control" name="phone" required>

@@ -10,6 +10,7 @@
     <div class="container py-4">
         <h1 class="text-center mb-4">Farm2Kitchen Halal Order Form</h1>
         <form method="POST" action="/submit_order" class="bg-white p-4 rounded shadow-sm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label for="zelle_name" class="form-label">Your Full Name</label>
                 <input type="text" class="form-control" name="zelle_name" required>
@@ -31,9 +32,15 @@
                     <label for="{{ key }}" class="form-label">
                         {{ label }} — ${{ "%.0f"|format(prices[key]) }}/{{ units[key] }}
                     </label>
-                    <input type="number" class="form-control" name="{{ key }}" min="0" step="1" placeholder="0">
+                    <input type="number" class="form-control order-item" name="{{ key }}" id="{{ key }}"
+                           data-price="{{ prices[key] }}" min="0" step="1" placeholder="0">
                 </div>
                 {% endfor %}
+            </div>
+
+            <div class="alert alert-info mt-3 mb-3">
+                <strong>Estimated Total: $<span id="live-total">0.00</span></strong>
+                <span class="text-muted small ms-2">(before any shared delivery/logistics fee)</span>
             </div>
 
             <div class="alert alert-secondary mt-3 mb-3" role="alert">
@@ -55,5 +62,21 @@
             <a href="/dashboard" class="btn btn-link">View Dashboard</a>
         </div>
     </div>
+
+    <script>
+        function calculateTotal() {
+            let total = 0.0;
+            document.querySelectorAll('.order-item').forEach(input => {
+                const qty = parseFloat(input.value) || 0;
+                const price = parseFloat(input.dataset.price) || 0;
+                total += qty * price;
+            });
+            document.getElementById('live-total').textContent = total.toFixed(2);
+        }
+
+        document.querySelectorAll('.order-item').forEach(input => {
+            input.addEventListener('input', calculateTotal);
+        });
+    </script>
 </body>
 </html>

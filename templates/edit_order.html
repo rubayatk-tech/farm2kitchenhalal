@@ -9,6 +9,7 @@
     <h2>Edit Order for {{ order.user.zelle_name }} ({{ order.user.phone }})</h2>
     <p class="text-muted small">Prices shown are locked to the rates at the time this order was placed.</p>
     <form method="post" id="editOrderForm" class="bg-white p-4 rounded shadow-sm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% for key, label in labels.items() %}
       <div class="mb-3">
         <label for="{{ key }}" class="form-label">

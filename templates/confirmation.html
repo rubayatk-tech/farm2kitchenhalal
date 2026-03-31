@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Order Confirmed — Farm2Kitchen Halal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4" style="max-width:600px;">
+        <div class="text-center mb-4">
+            <h1 class="text-success fw-bold">&#10003; Order Received!</h1>
+            <p class="text-muted">Thank you, <strong>{{ zelle_name }}</strong>. Your order has been submitted successfully.</p>
+        </div>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header fw-bold">Order Summary</div>
+            <div class="card-body">
+                <p class="mb-2">{{ items_ordered.replace(', ', '<br>')|safe }}</p>
+                <hr>
+                <p class="mb-1 fw-bold fs-5">Estimated Total: ${{ "%.2f"|format(total) }}</p>
+                <p class="text-muted small mb-0">Final total may include a shared delivery/logistics fee set by admin.</p>
+            </div>
+        </div>
+
+        {% if zelle_handle %}
+        <div class="card mb-4 shadow-sm border-warning">
+            <div class="card-header fw-bold" style="background-color: #fff3cd;">Payment via Zelle</div>
+            <div class="card-body">
+                <p class="mb-1">Send payment to: <strong>{{ zelle_handle }}</strong></p>
+                <p class="mb-1">Suggested payment note:</p>
+                <div class="alert alert-secondary py-2 mb-2">
+                    <code>F2K-{{ phone[-4:] }}-${{ "%.2f"|format(total) }}</code>
+                </div>
+                <p class="text-muted small mb-0">Payment is not required right now — you can also pay at pickup.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body text-center text-muted small">
+                <strong>Pickup Location:</strong><br>
+                Georgetown Islamic Center (GIC)<br>
+                7275 Co Rd 110, Round Rock, TX 78665
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center flex-wrap no-print">
+            <button onclick="window.print()" class="btn btn-outline-secondary">Print / Save as PDF</button>
+            <a href="/" class="btn btn-primary">Update My Order</a>
+            <a href="/dashboard" class="btn btn-outline-primary">View Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

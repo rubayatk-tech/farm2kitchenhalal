@@ -4,6 +4,66 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v2.3.0] – 2026-03-30
+### UX, Security Hardening & Admin Improvements
+
+#### Feature: Order Confirmation Page
+- After submitting an order, customers now land on a dedicated confirmation page instead of the public dashboard
+- Confirmation shows: customer name, all items ordered, estimated total, and pickup location
+- If `ZELLE_HANDLE` env var is set, the page displays the Zelle handle and a pre-filled suggested payment note (e.g. `F2K-1234-$120.00`)
+- Includes a print/save-as-PDF button for customers to keep a receipt — no email/SMS dependency
+- Includes an "Update My Order" link to return to the order form
+
+#### Feature: Live Order Total on Order Form
+- Order form now shows a real-time estimated total that updates as customers enter quantities
+- Prices are baked into the form at render time; no extra API calls required
+
+#### Security: Admin Password Hashing
+- Admin password is no longer compared in plain text
+- The `ADMIN_PASSWORD` env var value is hashed with Werkzeug `pbkdf2:sha256` at app startup and verified via `check_password_hash` — no format change needed on Render
+
+#### Security: CSRF Protection
+- All POST forms are now protected with CSRF tokens via Flask-WTF
+- Covers: order submission, admin login, shared cost update, clear orders, price management, payment update, confirm order, delete order, edit order, and PIN reset
+- Missing or invalid tokens return HTTP 400
+
+#### Security: Rate Limiting
+- `/submit_order` is limited to 5 requests per minute, keyed on the submitted phone number (not IP) to avoid blocking shared IPs at community events
+- `/admin_login` is limited to 10 requests per minute per IP
+
+#### Feature: Admin PIN Reset
+- Admin dashboard now includes a "Reset PIN" button per order
+- Clicking it clears `user.pin_hash` — on the customer's next order submission with their phone number, they set a new PIN
+- No email or SMS required; self-service recovery without admin needing DB access
+
+#### Bug Fix: Shared Cost Divisor
+- Shared cost is now divided by the number of **confirmed** orders only, not all orders
+- Previously, pending orders incorrectly diluted the per-order cost shown on the dashboard
+
+#### Admin: PDF Export Improvements
+- Confirmed orders PDF now includes **Amount Paid** and **Remaining Due** columns
+- Previously, the PDF omitted payment status, requiring cross-referencing with the dashboard screen
+
+#### Admin: Dashboard Status Filter
+- Dashboard table now has All / Pending / Confirmed filter buttons
+- Filtering is client-side (no page reload); uses Bootstrap badge text to match rows
+
+#### Dependencies
+- Added `Flask-WTF==1.2.1` (CSRF protection)
+- Added `flask-limiter==3.5.0` (rate limiting)
+- Added `pytest==8.1.1` (test suite)
+
+#### Test Suite
+- New `test_app.py` with 14 automated tests covering all v2.3 features
+- Runs against an isolated in-memory SQLite DB — no Render connection needed
+- Run with: `pytest test_app.py -v`
+
+#### Deployment Note
+- Set `ZELLE_HANDLE` env var in Render dashboard to display Zelle info on the confirmation page (optional — page works without it)
+- The shared cost divisor fix changes numbers shown on the dashboard — deploy in a low-traffic window
+
+---
+
 ## [v2.2.0] – 2026-02-27
 ### Security — PIN Authentication & Dashboard Privacy
 

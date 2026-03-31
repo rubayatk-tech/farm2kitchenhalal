@@ -11,6 +11,9 @@ load_dotenv()
 # 🔹 3. Flask Core and Extensions
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # 🔹 4. PDF ReportLab Libraries
@@ -22,7 +25,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 
 # App configuration
-from config import PRICES, LABELS, UNITS, ALLOWED_ADMINS, ADMIN_PASSWORD
+from config import PRICES, LABELS, UNITS, ALLOWED_ADMINS, ADMIN_PASSWORD, ZELLE_HANDLE
 
 
 app = Flask(__name__)
@@ -32,6 +35,11 @@ app.secret_key = os.getenv("SECRET_KEY")
 if not app.secret_key:
     raise ValueError("SECRET_KEY environment variable is not set.")
 db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
+
+# Hash admin password once at startup — plain-text env var, no format change needed on Render
+_admin_password_hash = generate_password_hash(ADMIN_PASSWORD)
 
 app.permanent_session_lifetime = timedelta(minutes=30)
 
@@ -95,8 +103,8 @@ def dashboard():
     orders = Order.query.filter_by(source="regular").all()
     shared_cost_cfg = Config.query.filter_by(key='shared_cost').first()
     shared_cost = shared_cost_cfg.value if shared_cost_cfg else 0
-    num_orders = len(orders)
-    shared_per_order = (shared_cost / num_orders) if num_orders else 0
+    num_confirmed = sum(1 for o in orders if o.status == 'Confirmed')
+    shared_per_order = (shared_cost / num_confirmed) if num_confirmed else 0
     total_received = sum(order.amount_paid or 0.0 for order in orders)
     current_prices = get_current_prices()
     return render_template(
@@ -110,7 +118,12 @@ def dashboard():
         units=UNITS
     )
 
+def _get_phone_or_ip():
+    """Rate-limit key for submit_order: use phone so masjid shared IPs aren't blocked."""
+    return request.form.get('phone') or get_remote_address()
+
 @app.route('/submit_order', methods=['POST'])
+@limiter.limit("5 per minute", key_func=_get_phone_or_ip)
 def submit_order():
     zelle_name = request.form.get('zelle_name')
     phone = request.form.get('phone')
@@ -170,18 +183,26 @@ def submit_order():
         db.session.add(new_order)
 
     db.session.commit()
-    return redirect('/dashboard')
+    return render_template(
+        'confirmation.html',
+        zelle_name=zelle_name,
+        phone=phone,
+        items_ordered=items_str,
+        total=total,
+        zelle_handle=ZELLE_HANDLE
+    )
 
 
 ### Administrative Features ###
 # Admin User Login
 @app.route('/admin_login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def admin_login():
     session.permanent = True
     if request.method == 'POST':
         phone = request.form.get('phone')
         password = request.form.get('password')
-        if phone in ALLOWED_ADMINS and password == ADMIN_PASSWORD:
+        if phone in ALLOWED_ADMINS and check_password_hash(_admin_password_hash, password):
             session['admin'] = True
             return redirect('/dashboard')
         else:
@@ -306,18 +327,22 @@ def export_confirmed_pdf():
 
     confirmed_orders = Order.query.filter_by(status='Confirmed', source='regular').all()
 
-    data = [["Name", "Phone", "Items Ordered", "Total Paid (excl. Shp Cost)"]]
+    data = [["Name", "Phone", "Items Ordered", "Total", "Amt Paid", "Remaining"]]
 
     for order in confirmed_orders:
         formatted_items = Paragraph(order.items_ordered.replace(", ", "<br/>"), styles['Normal'])
+        amount_paid = order.amount_paid or 0.0
+        remaining = order.total_price_usd - amount_paid
         data.append([
             order.user.zelle_name,
             order.user.phone,
             formatted_items,
-            f"${order.total_price_usd:.2f}"
+            f"${order.total_price_usd:.2f}",
+            f"${amount_paid:.2f}",
+            f"${remaining:.2f}",
         ])
 
-    table = Table(data, colWidths=[120, 100, 200, 120])
+    table = Table(data, colWidths=[90, 80, 130, 60, 60, 58])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -361,6 +386,17 @@ def update_payment(order_id):
         db.session.commit()
     except (ValueError, TypeError):
         pass
+    return redirect('/dashboard')
+
+
+# Admin reset customer PIN
+@app.route('/reset_pin/<int:user_id>', methods=['POST'])
+def reset_pin(user_id):
+    if not session.get('admin'):
+        return "Unauthorized", 403
+    user = db.get_or_404(User, user_id)
+    user.pin_hash = None
+    db.session.commit()
     return redirect('/dashboard')
 
 

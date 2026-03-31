@@ -41,6 +41,7 @@ UNITS = {
 
 ALLOWED_ADMINS = os.getenv("ADMIN_PHONES", "").split(",")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ZELLE_HANDLE = os.getenv("ZELLE_HANDLE", "")
 
 if not ADMIN_PASSWORD:
     raise ValueError("ADMIN_PASSWORD environment variable is not set.")
