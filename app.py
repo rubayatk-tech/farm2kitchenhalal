@@ -103,8 +103,8 @@ def dashboard():
     orders = Order.query.filter_by(source="regular").all()
     shared_cost_cfg = Config.query.filter_by(key='shared_cost').first()
     shared_cost = shared_cost_cfg.value if shared_cost_cfg else 0
-    num_confirmed = sum(1 for o in orders if o.status == 'Confirmed')
-    shared_per_order = (shared_cost / num_confirmed) if num_confirmed else 0
+    num_orders = len(orders)
+    shared_per_order = (shared_cost / num_orders) if num_orders else 0
     total_received = sum(order.amount_paid or 0.0 for order in orders)
     current_prices = get_current_prices()
     return render_template(
