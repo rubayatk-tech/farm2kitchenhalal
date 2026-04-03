@@ -23,7 +23,7 @@
         <form method="POST" action="/dashboard" class="mb-3 d-flex align-items-center">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label for="shared_cost" class="form-label me-2">Shared Cost ($):</label>
-            <input type="number" step="0.01" name="shared_cost" class="form-control w-auto me-2" required>
+            <input type="number" step="0.01" name="shared_cost" class="form-control w-auto me-2" value="{{ shared_cost }}" required>
             <button type="submit" class="btn btn-outline-info btn-sm">Apply</button>
         </form>
         <form method="POST" action="/clear_orders" class="mb-3">

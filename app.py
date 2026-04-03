@@ -111,6 +111,7 @@ def dashboard():
         'dashboard.html',
         orders=orders,
         shared_per_order=shared_per_order,
+        shared_cost=shared_cost,
         is_admin=session.get('admin', False),
         total_received=total_received,
         current_prices=current_prices,
