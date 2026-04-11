@@ -76,12 +76,17 @@ def get_current_prices():
     db_prices = {p.key: p.price for p in ItemPrice.query.all()}
     return {key: db_prices.get(key, PRICES[key]) for key in PRICES}
 
+def is_orders_open():
+    """Return True if the order form is open (default: open if no record exists)."""
+    cfg = Config.query.filter_by(key='orders_open').first()
+    return cfg is None or cfg.value == 1.0
+
 
 # Main Landing Page
 @app.route('/')
 def index():
     current_prices = get_current_prices()
-    return render_template('index.html', prices=current_prices, labels=LABELS, units=UNITS)
+    return render_template('index.html', prices=current_prices, labels=LABELS, units=UNITS, orders_open=is_orders_open())
 
 # Dashboard Route
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -116,7 +121,8 @@ def dashboard():
         total_received=total_received,
         current_prices=current_prices,
         labels=LABELS,
-        units=UNITS
+        units=UNITS,
+        orders_open=is_orders_open()
     )
 
 def _get_phone_or_ip():
@@ -126,6 +132,8 @@ def _get_phone_or_ip():
 @app.route('/submit_order', methods=['POST'])
 @limiter.limit("5 per minute", key_func=_get_phone_or_ip)
 def submit_order():
+    if not is_orders_open():
+        return "Orders are currently closed. No new orders are being accepted.", 403
     zelle_name = request.form.get('zelle_name')
     phone = request.form.get('phone')
     pin = request.form.get('pin', '').strip()
@@ -227,6 +235,20 @@ def confirm_order(order_id):
 @app.route('/logout')
 def logout():
     session.clear()
+    return redirect('/dashboard')
+
+# Admin toggle order form open/closed
+@app.route('/toggle_orders', methods=['POST'])
+def toggle_orders():
+    if not session.get('admin'):
+        return "Unauthorized", 403
+    cfg = Config.query.filter_by(key='orders_open').first()
+    if not cfg:
+        cfg = Config(key='orders_open', value=0.0)
+        db.session.add(cfg)
+    else:
+        cfg.value = 0.0 if cfg.value == 1.0 else 1.0
+    db.session.commit()
     return redirect('/dashboard')
 
 # Admin clearing all orders

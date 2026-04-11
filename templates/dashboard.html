@@ -26,6 +26,14 @@
             <input type="number" step="0.01" name="shared_cost" class="form-control w-auto me-2" value="{{ shared_cost }}" required>
             <button type="submit" class="btn btn-outline-info btn-sm">Apply</button>
         </form>
+        <form method="POST" action="/toggle_orders" class="mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if orders_open %}
+            <button type="submit" class="btn btn-warning btn-sm">Close Order Form</button>
+            {% else %}
+            <button type="submit" class="btn btn-success btn-sm">Re-open Order Form</button>
+            {% endif %}
+        </form>
         <form method="POST" action="/clear_orders" class="mb-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger btn-sm">Clear All Orders</button>

@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v2.4.0] – 2026-04-11
+### Admin: Order Form Open/Close Toggle
+
+#### Feature: Order Form Toggle
+- Admin dashboard now has a toggle button to open or close the public order form
+- When closed: the order form on the homepage is replaced with a "orders are closed" banner
+- When closed: direct POST requests to `/submit_order` are blocked with a 403
+- When re-opened: form immediately becomes accessible again — no redeploy needed
+- State stored in existing `Config` table (key: `orders_open`, 1.0 = open, 0.0 = closed)
+- Defaults to open if no DB record exists — existing deployments are unaffected on deploy
+
+#### Deployment Note
+- No schema changes required
+- Safe to deploy on a live system — form remains open until admin explicitly closes it
+
+---
+
 ## [v2.3.0] – 2026-03-30
 ### UX, Security Hardening & Admin Improvements
 

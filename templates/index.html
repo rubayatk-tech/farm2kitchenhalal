@@ -9,6 +9,7 @@
 <body class="bg-light">
     <div class="container py-4">
         <h1 class="text-center mb-4">Farm2Kitchen Halal Order Form</h1>
+        {% if orders_open %}
         <form method="POST" action="/submit_order" class="bg-white p-4 rounded shadow-sm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
@@ -57,6 +58,12 @@
                 <button type="submit" class="btn btn-primary">Submit Order</button>
             </div>
         </form>
+        {% else %}
+        <div class="alert alert-warning text-center py-5">
+            <h4 class="fw-bold">Orders are currently closed.</h4>
+            <p class="mb-0">We are no longer accepting new orders at this time. Thank you for your interest!</p>
+        </div>
+        {% endif %}
 
         <div class="text-center mt-3">
             <a href="/dashboard" class="btn btn-link">View Dashboard</a>
